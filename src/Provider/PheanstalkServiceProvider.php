@@ -4,9 +4,10 @@ namespace Sergiors\Silex\Provider;
 use Silex\Application;
 use Silex\ServiceProviderInterface;
 use Symfony\Component\Console\Application as ConsoleApplication;
-use Pheanstalk\Pheanstalk;
 use Pheanstalk\PheanstalkInterface;
+use Pheanstalk\Pheanstalk;
 use Leezy\PheanstalkBundle\PheanstalkLocator;
+use Leezy\PheanstalkBundle\Proxy\PheanstalkProxy;
 use Leezy\PheanstalkBundle\Listener\PheanstalkLogListener;
 use Leezy\PheanstalkBundle\Command\DeleteJobCommand;
 use Leezy\PheanstalkBundle\Command\FlushTubeCommand;
@@ -55,6 +56,22 @@ class PheanstalkServiceProvider implements ServiceProviderInterface
             $app['pheanstalks.options'] = $tmp;
         });
 
+        $app['pheanstalk.listener.log'] = $app->share(function (Application $app) {
+            $listener = new PheanstalkLogListener();
+            $listener->setLogger($app['logger']);
+            return $listener;
+        });
+
+        $app['pheanstalk.proxy.factory'] = $app->protect(
+            function ($name, PheanstalkInterface $pheanstalk) use ($app) {
+                $proxy = new PheanstalkProxy();
+                $proxy->setName($name);
+                $proxy->setPheanstalk($pheanstalk);
+                $proxy->setDispatcher($app['dispatcher']);
+                return $proxy;
+            }
+        );
+
         $app['pheanstalks'] = $app->share(function (Application $app) {
             $app['pheanstalks.options.initializer']();
 
@@ -66,16 +83,14 @@ class PheanstalkServiceProvider implements ServiceProviderInterface
                     $options['timeout']
                 );
 
-                $locator->addPheanstalk($name, $pheanstalk, $app['pheanstalks.default'] === $name);
+                $locator->addPheanstalk(
+                    $name,
+                    $app['pheanstalk.proxy.factory']($name, $pheanstalk),
+                    $app['pheanstalks.default'] === $name
+                );
             }
 
             return $locator;
-        });
-
-        $app['pheanstalk.listener.log'] = $app->share(function (Application $app) {
-            $listener = new PheanstalkLogListener();
-            $listener->setLogger($app['logger']);
-            return $listener;
         });
 
         // shortcuts for the "first" pheanstalk
