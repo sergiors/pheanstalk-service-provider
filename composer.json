@@ -1,5 +1,5 @@
 {
-    "name": "sergio/pheanstalk-service-provider",
+    "name": "sergiors/pheanstalk-service-provider",
     "description": "Pheanstalk for Silex",
     "license": "MIT",
     "require": {
