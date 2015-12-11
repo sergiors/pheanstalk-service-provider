@@ -82,7 +82,7 @@ class PheanstalkServiceProvider implements ServiceProviderInterface
         if (isset($app['console'])) {
             $app['console'] = $app->share(
                 $app->extend('console', function (ConsoleApplication $console) use ($app) {
-                    $locator = $app['pheanstalk.locator'];
+                    $locator = $app['pheanstalks'];
 
                     $console->add(new ListTubeCommand($locator));
                     $console->add(new StatsCommand($locator));
