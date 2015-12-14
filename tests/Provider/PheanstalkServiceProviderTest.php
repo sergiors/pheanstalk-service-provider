@@ -45,6 +45,18 @@ class PheanstalkServiceProviderTest extends WebTestCase
         $this->assertEquals($app['pheanstalks']->getPheanstalk('conn1'), $app['pheanstalk']);
     }
 
+    /**
+     * @test
+     */
+    public function shouldReturnTheCommands()
+    {
+        $app = $this->createApplication();
+        $app->register(new ConsoleServiceProvider());
+        $app->register(new PheanstalkServiceProvider());
+
+        $this->assertCount(13, $app['console']->all('leezy:pheanstalk'));
+    }
+
     public function createApplication()
     {
         $app = new Application();
