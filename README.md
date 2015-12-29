@@ -29,7 +29,7 @@ $app['pheanstalk']
     ]));
 ```
 
-If your install [Console Service Provider](https://github.com/sergiors/console-service-provider), you can enjoy more features. 
+If you install [Console Service Provider](https://github.com/sergiors/console-service-provider), you can enjoy more features.
 
 License
 -------
