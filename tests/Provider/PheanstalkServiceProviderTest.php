@@ -1,9 +1,12 @@
 <?php
-namespace Sergiors\Silex\Provider;
+
+namespace Sergiors\Silex\Tests\Provider;
 
 use Silex\Application;
 use Silex\WebTestCase;
 use Pheanstalk\PheanstalkInterface;
+use Sergiors\Silex\Provider\ConsoleServiceProvider;
+use Sergiors\Silex\Provider\PheanstalkServiceProvider;
 
 class PheanstalkServiceProviderTest extends WebTestCase
 {
@@ -15,8 +18,8 @@ class PheanstalkServiceProviderTest extends WebTestCase
         $app = $this->createApplication();
         $app->register(new PheanstalkServiceProvider(), [
             'pheanstalk.options' => [
-                'timeout' => 120
-            ]
+                'timeout' => 120,
+            ],
         ]);
 
         $this->assertInstanceOf(PheanstalkInterface::class, $app['pheanstalk']);
@@ -36,8 +39,8 @@ class PheanstalkServiceProviderTest extends WebTestCase
                 ],
                 'conn2' => [
                     'server' => 'localhost',
-                ]
-            ]
+                ],
+            ],
         ]);
 
         $this->assertCount(2, $app['pheanstalks']->getPheanstalks());

@@ -1,4 +1,5 @@
 <?php
+
 namespace Sergiors\Silex\Provider;
 
 use Silex\Application;
@@ -41,7 +42,7 @@ class PheanstalkServiceProvider implements ServiceProviderInterface
 
             if (!isset($app['pheanstalks.options'])) {
                 $app['pheanstalks.options'] = [
-                    'default' => isset($app['pheanstalk.options']) ? $app['pheanstalk.options'] : []
+                    'default' => isset($app['pheanstalk.options']) ? $app['pheanstalk.options'] : [],
                 ];
             }
 
@@ -59,6 +60,7 @@ class PheanstalkServiceProvider implements ServiceProviderInterface
         $app['pheanstalk.listener.log'] = $app->share(function (Application $app) {
             $listener = new PheanstalkLogListener();
             $listener->setLogger($app['logger']);
+
             return $listener;
         });
 
@@ -68,6 +70,7 @@ class PheanstalkServiceProvider implements ServiceProviderInterface
                 $proxy->setName($name);
                 $proxy->setPheanstalk($pheanstalk);
                 $proxy->setDispatcher($app['dispatcher']);
+
                 return $proxy;
             }
         );
@@ -96,13 +99,14 @@ class PheanstalkServiceProvider implements ServiceProviderInterface
         // shortcuts for the "first" pheanstalk
         $app['pheanstalk'] = $app->share(function (Application $app) {
             $pheanstalks = $app['pheanstalks'];
+
             return $pheanstalks->getPheanstalk($app['pheanstalks.default']);
         });
 
         $app['pheanstalk.default_options'] = [
             'server' => '127.0.0.1',
             'port' => PheanstalkInterface::DEFAULT_PORT,
-            'timeout' => PheanstalkInterface::DEFAULT_TTR
+            'timeout' => PheanstalkInterface::DEFAULT_TTR,
         ];
 
         if (isset($app['console'])) {

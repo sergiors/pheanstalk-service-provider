@@ -13,16 +13,6 @@
             "email": "sergio@inbep.com.br"
         }
     ],
-    "autoload": {
-        "psr-4": {
-            "Sergiors\\Silex\\": "src"
-        }
-    },
-    "autoload-dev": {
-        "psr-4": {
-            "Sergiors\\Silex\\": "tests"
-        }
-    },
     "require-dev": {
         "sergiors/console-service-provider": "^1.0",
         "phpunit/phpunit": "~4.8",
@@ -35,5 +25,15 @@
     },
     "suggest": {
         "sergiors/console-service-provider": ""
+    },
+    "autoload": {
+        "psr-4": {
+            "Sergiors\\Silex\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Sergiors\\Silex\\Tests\\": "tests"
+        }
     }
 }
