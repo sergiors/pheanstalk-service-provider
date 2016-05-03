@@ -47,13 +47,16 @@ class PheanstalkServiceProvider implements ServiceProviderInterface
             }
 
             $tmp = $app['pheanstalks.options'];
-            foreach ($tmp as $name => &$options) {
+            array_walk($tmp, function (&$options, $name) use ($app) {
                 $options = array_replace($app['pheanstalk.default_options'], $options);
 
-                if (!isset($app['pheanstalks.default'])) {
-                    $app['pheanstalks.default'] = $name;
+                if (isset($app['pheanstalks.default'])) {
+                    return;
                 }
-            }
+
+                $app['pheanstalks.default'] = $name;
+            });
+
             $app['pheanstalks.options'] = $tmp;
         });
 
@@ -79,7 +82,9 @@ class PheanstalkServiceProvider implements ServiceProviderInterface
             $app['pheanstalks.options.initializer']();
 
             $locator = new PheanstalkLocator();
-            foreach ($app['pheanstalks.options'] as $name => $options) {
+            $options = $app['pheanstalks.options'];
+
+            array_walk($options, function (array $options, $name) use ($app, $locator) {
                 $pheanstalk = new Pheanstalk(
                     $options['server'],
                     $options['port'],
@@ -91,9 +96,29 @@ class PheanstalkServiceProvider implements ServiceProviderInterface
                     $app['pheanstalk.proxy.factory']($name, $pheanstalk),
                     $app['pheanstalks.default'] === $name
                 );
-            }
+            });
 
             return $locator;
+        });
+
+        $app['pheanstalk.commands'] = $app->protect(function () use ($app) {
+            $locator = $app['pheanstalks'];
+
+            return [
+                new DeleteJobCommand($locator),
+                new FlushTubeCommand($locator),
+                new KickCommand($locator),
+                new KickJobCommand($locator),
+                new ListTubeCommand($locator),
+                new NextReadyCommand($locator),
+                new PauseTubeCommand($locator),
+                new PeekCommand($locator),
+                new PeekTubeCommand($locator),
+                new PutCommand($locator),
+                new StatsCommand($locator),
+                new StatsJobCommand($locator),
+                new StatsTubeCommand($locator)
+            ];
         });
 
         // shortcuts for the "first" pheanstalk
@@ -111,24 +136,13 @@ class PheanstalkServiceProvider implements ServiceProviderInterface
 
         if (isset($app['console'])) {
             $app['console'] = $app->share(
-                $app->extend('console', function (ConsoleApplication $console) use ($app) {
-                    $locator = $app['pheanstalks'];
+                $app->extend('console', function ($console) use ($app) {
+                    $commands = $app['pheanstalk.commands']();
 
-                    $console->add(new DeleteJobCommand($locator));
-                    $console->add(new FlushTubeCommand($locator));
-                    $console->add(new KickCommand($locator));
-                    $console->add(new KickJobCommand($locator));
-                    $console->add(new ListTubeCommand($locator));
-                    $console->add(new NextReadyCommand($locator));
-                    $console->add(new PauseTubeCommand($locator));
-                    $console->add(new PeekCommand($locator));
-                    $console->add(new PeekTubeCommand($locator));
-                    $console->add(new PutCommand($locator));
-                    $console->add(new StatsCommand($locator));
-                    $console->add(new StatsJobCommand($locator));
-                    $console->add(new StatsTubeCommand($locator));
-
-                    return $console;
+                    return array_reduce($commands, function (ConsoleApplication $console, $command) {
+                        $console->add($command);
+                        return $console;
+                    }, $console);
                 })
             );
         }
