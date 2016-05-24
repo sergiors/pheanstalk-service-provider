@@ -2,8 +2,10 @@
 
 namespace Sergiors\Silex\Provider;
 
+use Pimple\Container;
+use Pimple\ServiceProviderInterface;
 use Silex\Application;
-use Silex\ServiceProviderInterface;
+use Silex\Api\BootableProviderInterface;
 use Symfony\Component\Console\Application as ConsoleApplication;
 use Pheanstalk\PheanstalkInterface;
 use Pheanstalk\Pheanstalk;
@@ -27,9 +29,9 @@ use Leezy\PheanstalkBundle\Command\StatsTubeCommand;
 /**
  * @author Sérgio Rafael Siqueira <sergio@gmail.com>
  */
-class PheanstalkServiceProvider implements ServiceProviderInterface
+class PheanstalkServiceProvider implements ServiceProviderInterface, BootableProviderInterface
 {
-    public function register(Application $app)
+    public function register(Container $app)
     {
         $app['pheanstalks.options.initializer'] = $app->protect(function () use ($app) {
             static $initialized = false;
@@ -60,12 +62,12 @@ class PheanstalkServiceProvider implements ServiceProviderInterface
             $app['pheanstalks.options'] = $tmp;
         });
 
-        $app['pheanstalk.listener.log'] = $app->share(function (Application $app) {
+        $app['pheanstalk.listener.log'] = function () use ($app) {
             $listener = new PheanstalkLogListener();
             $listener->setLogger($app['logger']);
 
             return $listener;
-        });
+        };
 
         $app['pheanstalk.proxy.factory'] = $app->protect(
             function ($name, PheanstalkInterface $pheanstalk) use ($app) {
@@ -78,7 +80,7 @@ class PheanstalkServiceProvider implements ServiceProviderInterface
             }
         );
 
-        $app['pheanstalks'] = $app->share(function (Application $app) {
+        $app['pheanstalks'] = function (Application $app) {
             $app['pheanstalks.options.initializer']();
 
             $locator = new PheanstalkLocator();
@@ -99,7 +101,7 @@ class PheanstalkServiceProvider implements ServiceProviderInterface
             });
 
             return $locator;
-        });
+        };
 
         $app['pheanstalk.commands'] = $app->protect(function () use ($app) {
             $locator = $app['pheanstalks'];
@@ -122,11 +124,11 @@ class PheanstalkServiceProvider implements ServiceProviderInterface
         });
 
         // shortcuts for the "first" pheanstalk
-        $app['pheanstalk'] = $app->share(function (Application $app) {
+        $app['pheanstalk'] = function (Application $app) {
             $pheanstalks = $app['pheanstalks'];
 
             return $pheanstalks->getPheanstalk($app['pheanstalks.default']);
-        });
+        };
 
         $app['pheanstalk.default_options'] = [
             'server' => '127.0.0.1',
@@ -135,16 +137,14 @@ class PheanstalkServiceProvider implements ServiceProviderInterface
         ];
 
         if (isset($app['console'])) {
-            $app['console'] = $app->share(
-                $app->extend('console', function ($console) use ($app) {
-                    $commands = $app['pheanstalk.commands']();
+            $app['console'] = $app->extend('console', function ($console) use ($app) {
+                  $commands = $app['pheanstalk.commands']();
 
-                    return array_reduce($commands, function (ConsoleApplication $console, $command) {
-                        $console->add($command);
-                        return $console;
-                    }, $console);
-                })
-            );
+                  return array_reduce($commands, function (ConsoleApplication $console, $command) {
+                      $console->add($command);
+                      return $console;
+                  }, $console);
+            });
         }
     }
 
