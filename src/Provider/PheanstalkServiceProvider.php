@@ -44,22 +44,19 @@ class PheanstalkServiceProvider implements ServiceProviderInterface, BootablePro
 
             if (!isset($app['pheanstalks.options'])) {
                 $app['pheanstalks.options'] = [
-                    'default' => isset($app['pheanstalk.options']) ? $app['pheanstalk.options'] : [],
+                    'default' => isset($app['pheanstalk.options'])
+                        ? $app['pheanstalk.options']
+                        : []
                 ];
             }
 
-            $tmp = $app['pheanstalks.options'];
-            array_walk($tmp, function (&$options, $name) use ($app) {
-                $options = array_replace($app['pheanstalk.default_options'], $options);
+            $app['pheanstalks.options'] = array_map(function ($options) use ($app) {
+                return array_replace($app['pheanstalk.default_options'], $options);
+            }, $app['pheanstalks.options']);
 
-                if (isset($app['pheanstalks.default'])) {
-                    return;
-                }
-
-                $app['pheanstalks.default'] = $name;
-            });
-
-            $app['pheanstalks.options'] = $tmp;
+            if (!isset($app['pheanstalks.default'])) {
+                $app['pheanstalks.default'] = array_keys(array_slice($app['pheanstalks.options'], 0, 1))[0];
+            }
         });
 
         $app['pheanstalk.listener.log'] = function () use ($app) {
@@ -80,13 +77,12 @@ class PheanstalkServiceProvider implements ServiceProviderInterface, BootablePro
             }
         );
 
-        $app['pheanstalks'] = function (Application $app) {
+        $app['pheanstalks'] = function (Container $app) {
             $app['pheanstalks.options.initializer']();
 
             $locator = new PheanstalkLocator();
-            $options = $app['pheanstalks.options'];
 
-            array_walk($options, function (array $options, $name) use ($app, $locator) {
+            foreach ($app['pheanstalks.options'] as $name => $options) {
                 $pheanstalk = new Pheanstalk(
                     $options['server'],
                     $options['port'],
@@ -98,7 +94,7 @@ class PheanstalkServiceProvider implements ServiceProviderInterface, BootablePro
                     $app['pheanstalk.proxy.factory']($name, $pheanstalk),
                     $app['pheanstalks.default'] === $name
                 );
-            });
+            }
 
             return $locator;
         };
@@ -124,7 +120,7 @@ class PheanstalkServiceProvider implements ServiceProviderInterface, BootablePro
         });
 
         // shortcuts for the "first" pheanstalk
-        $app['pheanstalk'] = function (Application $app) {
+        $app['pheanstalk'] = function (Container $app) {
             $pheanstalks = $app['pheanstalks'];
 
             return $pheanstalks->getPheanstalk($app['pheanstalks.default']);
@@ -137,13 +133,14 @@ class PheanstalkServiceProvider implements ServiceProviderInterface, BootablePro
         ];
 
         if (isset($app['console'])) {
-            $app['console'] = $app->extend('console', function ($console) use ($app) {
-                  $commands = $app['pheanstalk.commands']();
+            $app['console'] = $app->extend('console', function (ConsoleApplication $console, Container $app) {
+                $commands = $app['pheanstalk.commands']();
 
-                  return array_reduce($commands, function (ConsoleApplication $console, $command) {
-                      $console->add($command);
-                      return $console;
-                  }, $console);
+                foreach ($commands as $command) {
+                    $console->add($command);
+                }
+
+                return $console;
             });
         }
     }
