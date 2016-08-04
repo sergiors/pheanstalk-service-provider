@@ -61,7 +61,10 @@ class PheanstalkServiceProvider implements ServiceProviderInterface, BootablePro
 
         $app['pheanstalk.listener.log'] = function () use ($app) {
             $listener = new PheanstalkLogListener();
-            $listener->setLogger($app['logger']);
+
+            if ($app['logger']) {
+                $listener->setLogger($app['logger']);
+            }
 
             return $listener;
         };
